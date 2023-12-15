@@ -7,13 +7,13 @@
 #include "Utils.h"
 
 
-std::unordered_set<char> StartOfSpecialSymbols = { '.','=',';',',',':','<','>','+','-','*','/','(',')' };
-std::unordered_set<char> StartOfNumbers = { '0','1','2','3','4','5','6','7','8','9' };
-std::unordered_set<char> StartOfIdentifiers = { '_','a','b','c','d','e','f','g','h','i','j','k','l','m',
+const std::unordered_set<char> StartOfSpecialSymbols = { '.','=',';',',',':','<','>','+','-','*','/','(',')' };
+const std::unordered_set<char> StartOfNumbers = { '0','1','2','3','4','5','6','7','8','9' };
+const std::unordered_set<char> StartOfIdentifiers = { '_','a','b','c','d','e','f','g','h','i','j','k','l','m',
 											   'n','o','p','q','r','s','t','u','v','w','x','y','z',
 											   'A','B','C','D','E','F','G','H','I','J','K','L','M',
 											   'N','O','P','Q','R','S','T','U','V','W','X','Y','Z' };
-std::unordered_set<std::string> Keywords = { "const","var","procedure","call","begin","end","if","then","while","do","odd" };
+const std::unordered_set<std::string> Keywords = { "const","var","procedure","call","begin","end","if","then","while","do","odd" };
 
 
 char CLexicalAnalyzer::GetChar(size_t position)
@@ -29,7 +29,7 @@ char CLexicalAnalyzer::GetChar(size_t position)
 	}
 }
 
-CLexicalAnalyzer::CLexicalAnalyzer(const std::string& sourceFilePath) : SourceFile{ sourceFilePath,std::ios::binary}
+CLexicalAnalyzer::CLexicalAnalyzer(const std::string& sourceFilePath) : SourceFile{ sourceFilePath,std::ios::binary }
 {
 	if (!SourceFile.is_open())
 	{
