@@ -131,13 +131,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CodeGenerator.cpp" />
     <ClCompile Include="Compiler.cpp" />
     <ClCompile Include="GlobalVariable.cpp" />
     <ClCompile Include="LexicalAnalyzer.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CodeGenerator.h" />
     <ClInclude Include="GlobalVariable.h" />
+    <ClInclude Include="Intruction.h" />
     <ClInclude Include="LexicalAnalyzer.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>

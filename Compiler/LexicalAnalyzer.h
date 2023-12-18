@@ -1,6 +1,10 @@
 #pragma once
 #include <vector>
 #include <fstream>
+#include <string>
+#include <unordered_set>
+
+extern std::unordered_set<std::string> Keywords;
 
 /*
 在语法分析中，终结符有两种类型，一种是由其字符串就知道其意义的，即一种字符串就是一种类型，包括关键字、特殊符号；
@@ -9,7 +13,7 @@
 struct STerminator {
 	size_t Line;				// 该终结符所在的行数
 	std::string Type;
-	int NumberValue;			// 仅当Type为"number"时有效
+	int32_t NumberValue;		// 仅当Type为"number"时有效
 	std::string IdentifierName;	// 仅当Type为"ident"时有效
 };
 
