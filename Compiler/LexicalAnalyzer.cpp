@@ -2,7 +2,7 @@
 
 #include "GlobalVariable.h"
 #include "Utils.h"
-
+#include <iostream>
 
 const std::unordered_set<char> StartOfSpecialSymbols = { '.','=',';',',',':','<','>','+','-','*','/','(',')' };
 const std::unordered_set<char> StartOfNumbers = { '0','1','2','3','4','5','6','7','8','9' };
@@ -130,9 +130,13 @@ void CLexicalAnalyzer::LexicalAnalyze()
 			currentPosition += 1;
 			currentLine += 1;
 		}
-		//情况5： 其他，直接无视
-		else {
+		//情况5： 空格或其他类似符号
+		else if (c == ' '||c=='\r'||c=='\t') {
 			currentPosition += 1;
+		}
+		//情况6： 其他
+		else {
+			Error("Unknown character: '" + std::string(1, c) + "', on line " + std::to_string(currentLine));
 		}
 	}
 }
@@ -144,9 +148,9 @@ const std::vector<STerminator>& CLexicalAnalyzer::GetTerminatorSequence()
 
 bool IsPossibleTerminatorType(const std::string& type)
 {
-	if(type=="ident") return true;
-	if(type=="number") return true;
-	if(Keywords.contains(type)) return true;
-	if(SpecialSymbols.contains(type)) return true;
+	if (type == "ident") return true;
+	if (type == "number") return true;
+	if (Keywords.contains(type)) return true;
+	if (SpecialSymbols.contains(type)) return true;
 	return false;
 }

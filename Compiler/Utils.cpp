@@ -3,6 +3,6 @@
 
 void Error(const std::string& message)
 {
-	std::cout <<"Error: " << message << std::endl;
+	std::cerr <<"Error: " << message << std::endl;
 	exit(1);
 }

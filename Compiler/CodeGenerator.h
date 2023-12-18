@@ -1,6 +1,7 @@
 #pragma once
 #include "LexicalAnalyzer.h"
 #include "Intruction.h"
+#include <memory>
 
 
 struct SVariable {
@@ -40,7 +41,7 @@ private:
 	uint32_t CurrentIndex{};							//当前处理的词法分析结果的下标
 	std::vector<Instruction> Instructions;				//最终得到的指令序列
 
-	std::vector<SProcedure> Procedures;					//所有的子程序
+	std::vector<std::shared_ptr<SProcedure>> Procedures;//所有的子程序；std::vector在扩容时会移动内存，因此使用智能指针
 	std::vector<SCallIntruction> CallInstructions;		//所有的调用指令，用于回填
 
 	/*

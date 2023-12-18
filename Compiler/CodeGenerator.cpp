@@ -21,8 +21,8 @@ void CCodeGenerator::GenerateCode()
 
 	//将所有的子程序的指令序列合并到Instructions中
 	for (auto& procedure : Procedures) {
-		procedure.Address = Instructions.size();
-		Instructions.insert(Instructions.end(), procedure.Instructions.begin(), procedure.Instructions.end());
+		procedure->Address = Instructions.size();
+		Instructions.insert(Instructions.end(), procedure->Instructions.begin(), procedure->Instructions.end());
 	}
 	//回填
 	for (auto& callInstruction : CallInstructions) {
@@ -105,8 +105,8 @@ void CCodeGenerator::AddSubProcedure(SProcedure& procedure, uint32_t identTermin
 		Error("Line " + std::to_string(TerminatorSequence[identTerminatorIndex].Line) + ": identifier '" + identifierName + "' has already been declared as procedure name");
 	}
 
-	Procedures.push_back({ &procedure,(int16_t)(procedure.Level + 1),identifierName });
-	procedure.SubProcedures.push_back(&Procedures.back());
+	Procedures.push_back(std::make_shared<SProcedure>(&procedure, (int16_t)(procedure.Level + 1), identifierName));
+	procedure.SubProcedures.push_back(Procedures.back().get());
 }
 
 void CCodeGenerator::FindVariable(SProcedure& procedure, uint32_t identTerminatorIndex, int16_t& levelDiff, uint32_t& offset)
@@ -173,12 +173,8 @@ void CCodeGenerator::FindSubProcedure(SProcedure& procedure, uint32_t identTermi
 void CCodeGenerator::Program()
 {
 	//主程序
-	SProcedure mainProcedure;
-	mainProcedure.Parent = nullptr;
-	mainProcedure.Level = 0;
-	mainProcedure.Name = "main";
-	Procedures.push_back(mainProcedure);
-	Procedure(Procedures[0]);
+	Procedures.push_back(std::make_shared<SProcedure>(nullptr, 0, "main"));	//主程序的Parent为nullptr，Level为0
+	Procedure(*Procedures[0]);
 
 	Match(".");
 }
@@ -283,7 +279,7 @@ void CCodeGenerator::ProcedureDeclare(SProcedure& procedure)
 	Match("ident", nullptr, &procedureName);
 	Match(";");
 	AddSubProcedure(procedure, CurrentIndex - 2);
-	Procedure(Procedures.back());
+	Procedure(*Procedures.back());
 	Match(";");
 }
 
