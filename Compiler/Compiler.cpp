@@ -21,7 +21,7 @@ void LexicalAnalyzerTest()
 	}
 }
 
-void WrongUsage() {
+void ShowUsage() {
 	std::cout << "Usage: " << std::endl<<std::endl;
 	std::cout << "Compiler <SourceFilePath> <OutputFilePath>" << std::endl;
 	exit(0);
@@ -30,7 +30,7 @@ void WrongUsage() {
 int main(int argc,char** argv) {
 	//从命令行参数中读取源文件路径和目标文件路径
 	if(argc != 3) {
-		WrongUsage();
+		ShowUsage();
 	}
 	else {
 		SourceFilePath = argv[1];
@@ -42,7 +42,7 @@ int main(int argc,char** argv) {
 	auto TerminatorSequence = LexicalAnalyzer.GetTerminatorSequence();
 	CCodeGenerator CodeGenerator{ TerminatorSequence };
 	CodeGenerator.GenerateCode();
-	CodeGenerator.PrintInstructions();
+	//CodeGenerator.PrintInstructions();	//打印生成的指令（以数字的形式）
 	CodeGenerator.Output(OutputFilePath);
 }
 

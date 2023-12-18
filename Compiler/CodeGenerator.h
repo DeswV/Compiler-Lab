@@ -1,6 +1,6 @@
 #pragma once
 #include "LexicalAnalyzer.h"
-#include "Intruction.h"
+#include "Instruction.h"
 #include <memory>
 
 

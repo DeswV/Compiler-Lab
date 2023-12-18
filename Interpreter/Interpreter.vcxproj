@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{2a855a35-3e1a-439c-a7cb-13a0cd452d10}</ProjectGuid>
-    <RootNamespace>Compiler</RootNamespace>
+    <ProjectGuid>{79a7eb86-28e0-45fb-b411-714430067d81}</ProjectGuid>
+    <RootNamespace>Interpreter</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -143,18 +143,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CodeGenerator.cpp" />
-    <ClCompile Include="Compiler.cpp" />
-    <ClCompile Include="GlobalVariable.cpp" />
-    <ClCompile Include="LexicalAnalyzer.cpp" />
-    <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="Interpreter.cpp" />
+    <ClCompile Include="Pl0VirtualMachine.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\Instruction.h" />
-    <ClInclude Include="CodeGenerator.h" />
-    <ClInclude Include="GlobalVariable.h" />
-    <ClInclude Include="LexicalAnalyzer.h" />
-    <ClInclude Include="Utils.h" />
+    <ClInclude Include="Pl0VirtualMachine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
