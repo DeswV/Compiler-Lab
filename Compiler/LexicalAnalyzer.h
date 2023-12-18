@@ -4,7 +4,6 @@
 #include <string>
 #include <unordered_set>
 
-extern std::unordered_set<std::string> Keywords;
 
 /*
 在语法分析中，终结符有两种类型，一种是由其字符串就知道其意义的，即一种字符串就是一种类型，包括关键字、特殊符号；
@@ -29,5 +28,11 @@ public:
 	void LexicalAnalyze();
 	const std::vector<STerminator>& GetTerminatorSequence();
 };
+
+
+//让语法分析过程可以查看的变量
+extern const std::unordered_set<std::string> Keywords;
+//让语法分析过程可以调用的函数
+bool IsPossibleTerminatorType(const std::string& type);
 
 

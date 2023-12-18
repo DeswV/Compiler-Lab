@@ -11,6 +11,7 @@ const std::unordered_set<char> StartOfIdentifiers = { '_','a','b','c','d','e','f
 											   'A','B','C','D','E','F','G','H','I','J','K','L','M',
 											   'N','O','P','Q','R','S','T','U','V','W','X','Y','Z' };
 const std::unordered_set<std::string> Keywords = { "const","var","procedure","call","begin","end","if","then","while","do","odd" };
+const std::unordered_set<std::string> SpecialSymbols = { ".","=",";",",",":=","<","<=","<>",">",">=","+","-","*","/","(",")" };
 
 
 char CLexicalAnalyzer::GetChar(size_t position)
@@ -139,4 +140,13 @@ void CLexicalAnalyzer::LexicalAnalyze()
 const std::vector<STerminator>& CLexicalAnalyzer::GetTerminatorSequence()
 {
 	return TerminatorSequence;
+}
+
+bool IsPossibleTerminatorType(const std::string& type)
+{
+	if(type=="ident") return true;
+	if(type=="number") return true;
+	if(Keywords.contains(type)) return true;
+	if(SpecialSymbols.contains(type)) return true;
+	return false;
 }
