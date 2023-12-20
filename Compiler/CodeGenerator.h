@@ -1,12 +1,24 @@
 #pragma once
+#include <memory>
 #include "LexicalAnalyzer.h"
 #include "Instruction.h"
-#include <memory>
+#include "Type.h"
 
 
 struct SVariable {
 	std::string Name;
+	SType Type;
 	uint32_t Offset;		//存储在函数栈中的偏移量
+	bool bIsConst;
+	/*
+	如果是数组，那么在Expression()中会将其转换为指针
+	*/
+};
+
+//代表表达式计算中的一个值，左值或右值
+struct SValue {
+	SType Type;
+	bool bIsConst;
 };
 
 //一个子程序
@@ -16,6 +28,7 @@ struct SProcedure
 	int16_t Level;							//层次
 	std::string Name;						//子程序名，主程序的名字为"main"
 
+	uint32_t StackOffset{ 3 };				//下一个局部变量在栈中的偏移量，从3开始，因为DL、SL、RA占据了0、1、2
 	std::vector<SVariable> Variables;
 	std::vector<SProcedure*> SubProcedures;
 
@@ -50,14 +63,14 @@ private:
 	//得到下一个终结符类型，顺便检查是否存在下一个终结符，不存在则报错
 	std::string GetNextTerminatorType();
 	//向procedure.Variables中添加一个变量，顺便检查这个变量名是否合法；输入是定义了这个变量名的终结符的下标
-	void AddVariable(SProcedure& procedure, uint32_t identTerminatorIndex);
+	void AddVariable(SProcedure& procedure, uint32_t identTerminatorIndex, const SType& type, bool isConst = false);
 	//同理，添加一个子程序到Procedures的末尾，同时将指针放入procedure.SubProcedures中；输入是定义了这个子程序名的终结符的下标
 	void AddSubProcedure(SProcedure& procedure, uint32_t identTerminatorIndex);
-	//输入的identTerminatorIndex是使用变量名的终结符的下标；返回levelDiff和offset，分别是变量的层次差和偏移量
-	void FindVariable(SProcedure& procedure, uint32_t identTerminatorIndex, int16_t& levelDiff, uint32_t& offset);
+	//输入的identTerminatorIndex是使用变量名的终结符的下标，之后都是返回值
+	void FindVariable(SProcedure& procedure, uint32_t identTerminatorIndex, SType& type, int16_t& levelDiff, uint32_t& offset, bool& isConst);
 	//与FindVariable类似
 	void FindSubProcedure(SProcedure& procedure, uint32_t identTerminatorIndex, SProcedure*& calledProcedure, int16_t& levelDiff);
-
+	
 	/*
 	* 各种语法分析函数
 	*/
@@ -69,6 +82,7 @@ private:
 
 	void ConstDeclare(SProcedure& procedure);
 	void VarDeclare(SProcedure& procedure);
+	void VarDefine(SProcedure& procedure);
 	//子程序声明，输入的procedure是父程序
 	void ProcedureDeclare(SProcedure& procedure);
 	void Statement(SProcedure& procedure);
@@ -81,12 +95,14 @@ private:
 	void Condition(SProcedure& procedure);
 	void OddCondition(SProcedure& procedure);
 	void CompareCondition(SProcedure& procedure);
-	//表达式；其对应的指令执行完毕后，栈顶的值就是表达式的值
-	void Expression(SProcedure& procedure);
+	//表达式；其对应的指令执行完毕后，栈顶的值就是表达式的值；返回值代表了表达式的值的类型
+	//将对应的指令附加到instructions中
+	//之所以要这样做，是由于对于赋值语句要先计算等式右边再计算等式左边，因此需要暂存等式右边的指令
+	SValue Expression(SProcedure& procedure, std::vector<Instruction>& instructions);
 	//项
-	void Term(SProcedure& procedure);
+	SValue Term(SProcedure& procedure, std::vector<Instruction>& instructions);
 	//因子
-	void Factor(SProcedure& procedure);
+	SValue Factor(SProcedure& procedure, std::vector<Instruction>& instructions);
 	/*
 	主程序是特殊的，它的RA为0，调用RET时会退出程序
 	在解释程序开始运行时，先手动向栈中压入三个0，占据DL、SL、RA的位置

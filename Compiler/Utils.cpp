@@ -4,5 +4,5 @@
 void Error(const std::string& message)
 {
 	std::cerr <<"Error: " << message << std::endl;
-	exit(1);
+	throw std::exception(message.c_str());
 }

@@ -1,41 +1,45 @@
 #include "LexicalAnalyzer.h"
 
+#include <iostream>
+#include <fstream>
 #include "GlobalVariable.h"
 #include "Utils.h"
-#include <iostream>
 
-const std::unordered_set<char> StartOfSpecialSymbols = { '.','=',';',',',':','<','>','+','-','*','/','(',')' };
+
+const std::unordered_set<char> StartOfSpecialSymbols = { '.','=',';',',',':','<','>','+','-','*','/','(',')' ,'[',']','&' };
 const std::unordered_set<char> StartOfNumbers = { '0','1','2','3','4','5','6','7','8','9' };
 const std::unordered_set<char> StartOfIdentifiers = { '_','a','b','c','d','e','f','g','h','i','j','k','l','m',
 											   'n','o','p','q','r','s','t','u','v','w','x','y','z',
 											   'A','B','C','D','E','F','G','H','I','J','K','L','M',
 											   'N','O','P','Q','R','S','T','U','V','W','X','Y','Z' };
 const std::unordered_set<std::string> Keywords = { "const","var","procedure","call","begin","end","if","then","while","do","odd" };
-const std::unordered_set<std::string> SpecialSymbols = { ".","=",";",",",":=","<","<=","<>",">",">=","+","-","*","/","(",")" };
+const std::unordered_set<std::string> SpecialSymbols = { ".","=",";",",",":=","<","<=","<>",">",">=","+","-","*","/","(",")" ,"[","]","&" };
 
 
 char CLexicalAnalyzer::GetChar(size_t position)
 {
-	char ret;
 	if (position >= 0 && position < FileSize) {
-		SourceFile.seekg(position, std::ios::beg); // 移动到指定位置
-		SourceFile.get(ret); // 读取该位置的字节
-		return ret;
+		return SourceFile[position];
 	}
 	else {
 		Error("GetChar: position out of range.");
 	}
 }
 
-CLexicalAnalyzer::CLexicalAnalyzer(const std::string& sourceFilePath) : SourceFile{ sourceFilePath,std::ios::binary }
+CLexicalAnalyzer::CLexicalAnalyzer(const std::string& sourceFilePath)
 {
-	if (!SourceFile.is_open())
+	std::ifstream fin{ sourceFilePath,std::ios::binary };
+	if (!fin.is_open())
 	{
 		Error("Cannot open file: " + sourceFilePath);
 	}
 	// 获取文件大小
-	SourceFile.seekg(0, std::ios::end);
-	FileSize = SourceFile.tellg();
+	fin.seekg(0, std::ios::end);
+	FileSize = fin.tellg();
+	//读取整个文件
+	SourceFile.resize(FileSize);
+	fin.seekg(0, std::ios::beg);
+	fin.read((char*)SourceFile.data(), FileSize);
 }
 
 /*
@@ -131,7 +135,7 @@ void CLexicalAnalyzer::LexicalAnalyze()
 			currentLine += 1;
 		}
 		//情况5： 空格或其他类似符号
-		else if (c == ' '||c=='\r'||c=='\t') {
+		else if (c == ' ' || c == '\r' || c == '\t') {
 			currentPosition += 1;
 		}
 		//情况6： 其他

@@ -35,7 +35,53 @@ void CCodeGenerator::GenerateCode()
 void CCodeGenerator::PrintInstructions()
 {
 	for (auto& instruction : Instructions) {
-		std::cout << instruction.F << ' ' << instruction.L << ' ' << instruction.a << std::endl;
+		switch (instruction.F) {
+		case 0:
+			std::cout << "INT";
+			break;
+		case 1:
+			std::cout << "LIT";
+			break;
+		case 2:
+			std::cout << "LOD";
+			break;
+		case 3:
+			std::cout << "STO";
+			break;
+		case 4:
+			std::cout << "CAL";
+			break;
+		case 5:
+			std::cout << "JMP";
+			break;
+		case 6:
+			std::cout << "JPC";
+			break;
+		case 7:
+			std::cout << "OPR";
+			break;
+		case 8:
+			std::cout << "RET";
+			break;
+		case 9:
+			std::cout << "LOR";
+			break;
+		case 10:
+			std::cout << "STR";
+			break;
+		case 11:
+			std::cout << "LBP";
+			break;
+		case 12:
+			std::cout << "WRT";
+			break;
+		case 13:
+			std::cout << "LOA";
+			break;
+		default:
+			break;
+		}
+		std::cout << ' ' << instruction.L << ' ' << instruction.a << std::endl;
 	}
 }
 
@@ -58,7 +104,7 @@ std::string CCodeGenerator::GetNextTerminatorType() {
 	return TerminatorSequence[CurrentIndex].Type;
 }
 
-void CCodeGenerator::AddVariable(SProcedure& procedure, uint32_t identTerminatorIndex)
+void CCodeGenerator::AddVariable(SProcedure& procedure, uint32_t identTerminatorIndex, const SType& type, bool isConst)
 {
 	std::string identifierName = TerminatorSequence[identTerminatorIndex].IdentifierName;
 
@@ -80,7 +126,8 @@ void CCodeGenerator::AddVariable(SProcedure& procedure, uint32_t identTerminator
 		Error("Line " + std::to_string(TerminatorSequence[identTerminatorIndex].Line) + ": identifier '" + identifierName + "' has already been declared as procedure name");
 	}
 
-	procedure.Variables.push_back({ identifierName,(uint32_t)(procedure.Variables.size() + 3) });
+	procedure.Variables.push_back({ identifierName,type,procedure.StackOffset,isConst });
+	procedure.StackOffset += GetSize(type);
 }
 
 void CCodeGenerator::AddSubProcedure(SProcedure& procedure, uint32_t identTerminatorIndex)
@@ -109,7 +156,7 @@ void CCodeGenerator::AddSubProcedure(SProcedure& procedure, uint32_t identTermin
 	procedure.SubProcedures.push_back(Procedures.back().get());
 }
 
-void CCodeGenerator::FindVariable(SProcedure& procedure, uint32_t identTerminatorIndex, int16_t& levelDiff, uint32_t& offset)
+void CCodeGenerator::FindVariable(SProcedure& procedure, uint32_t identTerminatorIndex, SType& type, int16_t& levelDiff, uint32_t& offset, bool& isConst)
 {
 	std::string variableName = TerminatorSequence[identTerminatorIndex].IdentifierName;
 
@@ -119,7 +166,9 @@ void CCodeGenerator::FindVariable(SProcedure& procedure, uint32_t identTerminato
 	while (currentProcedure) {
 		for (auto& variable : currentProcedure->Variables) {
 			if (variable.Name == variableName) {
+				type = variable.Type;
 				offset = variable.Offset;
+				isConst = variable.bIsConst;
 				return;
 			}
 		}
@@ -235,7 +284,7 @@ void CCodeGenerator::ConstDeclare(SProcedure& procedure)
 		Match("ident", nullptr, &identifierName);
 		Match("=");
 		Match("number", &numberValue);
-		AddVariable(procedure, CurrentIndex - 3);
+		AddVariable(procedure, CurrentIndex - 3, SType{ EType::Integer }, true);
 
 		//将常量的值存入栈中
 		procedure.Instructions.push_back({ LIT,0,numberValue });
@@ -254,13 +303,8 @@ void CCodeGenerator::VarDeclare(SProcedure& procedure)
 {
 	Match("var");
 
-	std::string identifierName;
 	while (true) {
-		Match("ident", nullptr, &identifierName);
-		AddVariable(procedure, CurrentIndex - 1);
-
-		//在栈中为变量分配空间
-		procedure.Instructions.push_back({ INT,0,1 });
+		VarDefine(procedure);
 
 		if (GetNextTerminatorType() == ";") {
 			Match(";");
@@ -270,6 +314,49 @@ void CCodeGenerator::VarDeclare(SProcedure& procedure)
 			Match(",");
 		}
 	}
+}
+
+void CCodeGenerator::VarDefine(SProcedure& procedure)
+{
+	//匹配若干个“*”
+	uint32_t numberOfStars{};
+	while (true) {
+		if (GetNextTerminatorType() == "*") {
+			Match("*");
+			numberOfStars++;
+		}
+		else break;
+	}
+
+	//匹配一个标识符
+	Match("ident");
+	uint32_t indexOfIdentTerminator = CurrentIndex - 1;
+
+	//匹配若干个[dim]
+	std::vector<uint32_t> dimensions;
+	while (true) {
+		if (GetNextTerminatorType() == "[") {
+			Match("[");
+			int32_t numberValue;
+			Match("number", &numberValue);
+			if (numberValue <= 0) {
+				Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": dimension must be positive");
+			}
+			dimensions.push_back(numberValue);
+			Match("]");
+		}
+		else break;
+	}
+
+	//构建该变量的类型
+	SType type;
+	type = BuildMultiLevelPointerType(numberOfStars, SType{ EType::Integer });
+	type = BuildNDimArrayType(dimensions, 0, type);
+
+	//记录该变量
+	AddVariable(procedure, indexOfIdentTerminator, type);
+	//在栈中为该变量分配空间
+	procedure.Instructions.push_back({ INT,0,(int32_t)GetSize(type) });
 }
 
 void CCodeGenerator::ProcedureDeclare(SProcedure& procedure)
@@ -287,7 +374,7 @@ void CCodeGenerator::Statement(SProcedure& procedure)
 {
 	std::string nextTerminatorType = GetNextTerminatorType();
 
-	if (nextTerminatorType == "ident") {
+	if (nextTerminatorType == "ident" || nextTerminatorType == "number" || nextTerminatorType == "(" || nextTerminatorType == "*" || nextTerminatorType == "&") {
 		AssignStatement(procedure);
 	}
 	else if (nextTerminatorType == "call") {
@@ -321,16 +408,40 @@ void CCodeGenerator::StatementSequence(SProcedure& procedure)
 
 void CCodeGenerator::AssignStatement(SProcedure& procedure)
 {
-	Match("ident");
+	std::vector<Instruction> instructionsOfLeft;	//暂存左值的指令序列
+	SValue leftValue = Factor(procedure, instructionsOfLeft);	//得到左值的类型和是否是常量
 
-	//查找该变量
-	int16_t levelDiff;
-	uint32_t offset;
-	FindVariable(procedure, CurrentIndex - 1, levelDiff, offset);
+	// 1. 检查是否是左值
+	if (instructionsOfLeft.back().F != LOD && instructionsOfLeft.back().F != LOR) {
+		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot assign to a non-lvalue");
+	}
+	//修改指令使得指令执行结束后栈顶是该左值的地址而非该左值的值
+	if (instructionsOfLeft.back().F == LOD) {
+		int16_t levelDiff = instructionsOfLeft.back().L;
+		int32_t offset = instructionsOfLeft.back().a;
+		instructionsOfLeft.pop_back();
+		instructionsOfLeft.push_back({ LOA,levelDiff,offset });
+	}
+	//instructionsOfLeft.back().F == LOR
+	else {
+		instructionsOfLeft.pop_back();
+	}
+	// 2. 检查是否是常量
+	if (leftValue.bIsConst) {
+		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot assign to a const value");
+	}
 
 	Match(":=");
-	Expression(procedure);	//Expression的代码执行完毕后，表达式的值被存在栈顶
-	procedure.Instructions.push_back({ STO,levelDiff,(int32_t)offset });
+	SValue rightValue = Expression(procedure, procedure.Instructions);
+
+	// 3. 检查类型是否匹配
+	if (leftValue.Type != rightValue.Type) {
+		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot assign value to different types");
+	}
+
+	//将计算左值的指令放在右值的指令之后
+	procedure.Instructions.insert(procedure.Instructions.end(), instructionsOfLeft.begin(), instructionsOfLeft.end());
+	procedure.Instructions.push_back({ STR,0,0 });
 }
 
 void CCodeGenerator::CallStatement(SProcedure& procedure)
@@ -398,13 +509,13 @@ void CCodeGenerator::Condition(SProcedure& procedure)
 void CCodeGenerator::OddCondition(SProcedure& procedure)
 {
 	Match("odd");
-	Expression(procedure);
+	Expression(procedure, procedure.Instructions);
 	procedure.Instructions.push_back({ OPR,0,Odd });	//这条指令根据栈顶的值将1或0替代为栈顶
 }
 
 void CCodeGenerator::CompareCondition(SProcedure& procedure)
 {
-	Expression(procedure);
+	SValue value1 = Expression(procedure, procedure.Instructions);
 
 	//匹配一个比较运算符
 	std::string nextTerminatorType = GetNextTerminatorType();
@@ -437,83 +548,234 @@ void CCodeGenerator::CompareCondition(SProcedure& procedure)
 		Error("Expected a compare operator on line " + std::to_string(TerminatorSequence[CurrentIndex].Line));
 	}
 
-	Expression(procedure);
+	SValue value2 = Expression(procedure, procedure.Instructions);
+	//检查类型是否匹配
+	if (value1.Type != value2.Type) {
+		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot compare different types of values");
+	}
 	procedure.Instructions.push_back({ OPR,0,OPR_a });
 }
 
-void CCodeGenerator::Expression(SProcedure& procedure)
+SValue CCodeGenerator::Expression(SProcedure& procedure, std::vector<Instruction>& instructions)
 {
-	Term(procedure);
+	SValue value = Term(procedure, instructions);
+	SValue nextValue;
 
 	std::string nextTerminatorType;
 	while (true) {
 		nextTerminatorType = GetNextTerminatorType();
 		if (nextTerminatorType == "+") {
 			Match("+");
-			Term(procedure);
-			procedure.Instructions.push_back({ OPR,0,Add });
+			nextValue = Term(procedure, instructions);
+
+			//检查类型是否能够相加
+			if (value.Type == nextValue.Type && value.Type.Type == EType::Integer) {
+				instructions.push_back({ OPR,0,Add });
+			}
+			else if (value.Type.Type == EType::Pointer && nextValue.Type.Type == EType::Integer) {
+				instructions.push_back({ LIT,0,(int32_t)GetSize(*value.Type.InnerType) });
+				instructions.push_back({ OPR,0,Mul });
+				instructions.push_back({ OPR,0,Add });
+			}
+			else {
+				Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot add such types of values");
+			}
 		}
 		else if (nextTerminatorType == "-") {
 			Match("-");
-			Term(procedure);
-			procedure.Instructions.push_back({ OPR,0,Sub });
+			nextValue = Term(procedure, instructions);
+
+			//检查类型是否能够相减
+			if (value.Type == nextValue.Type && value.Type.Type == EType::Integer) {
+				instructions.push_back({ OPR,0,Sub });
+			}
+			else if (value.Type.Type == EType::Pointer && nextValue.Type.Type == EType::Integer) {
+				instructions.push_back({ LIT,0,(int32_t)GetSize(*value.Type.InnerType) });
+				instructions.push_back({ OPR,0,Mul });
+				instructions.push_back({ OPR,0,Sub });
+			}
+			else {
+				Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot sub such types of values");
+			}
 		}
 		else {
 			break;
 		}
 	}
+
+	value.bIsConst = false;
+	return value;
 }
 
-void CCodeGenerator::Term(SProcedure& procedure)
+SValue CCodeGenerator::Term(SProcedure& procedure, std::vector<Instruction>& instructions)
 {
-	Factor(procedure);
+	SValue value = Factor(procedure, instructions);
+	SValue nextValue;
 
 	std::string nextTerminatorType;
 	while (true) {
 		nextTerminatorType = GetNextTerminatorType();
 		if (nextTerminatorType == "*") {
 			Match("*");
-			Factor(procedure);
-			procedure.Instructions.push_back({ OPR,0,Mul });
+			nextValue = Factor(procedure, instructions);
+
+			//检查类型是否能够相乘
+			if (value.Type.Type != EType::Integer || nextValue.Type.Type != EType::Integer) {
+				Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot mul such types of values");
+			}
+			instructions.push_back({ OPR,0,Mul });
 		}
 		else if (nextTerminatorType == "/") {
 			Match("/");
-			Factor(procedure);
-			procedure.Instructions.push_back({ OPR,0,Div });
+			nextValue = Factor(procedure, instructions);
+
+			//检查类型是否能够相除
+			if (value.Type.Type != EType::Integer || nextValue.Type.Type != EType::Integer) {
+				Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot div such types of values");
+			}
+			instructions.push_back({ OPR,0,Div });
 		}
 		else {
 			break;
 		}
 	}
+
+	return value;
 }
 
-void CCodeGenerator::Factor(SProcedure& procedure)
+SValue CCodeGenerator::Factor(SProcedure& procedure, std::vector<Instruction>& instructions)
 {
 	std::string nextTerminatorType = GetNextTerminatorType();
+	SValue value;	//跟踪当前处理的值的类型、是否是左值、是否是常量
 
-	if (nextTerminatorType == "ident") {
-		Match("ident");
-		int16_t levelDiff;
-		uint32_t offset;
-		FindVariable(procedure, CurrentIndex - 1, levelDiff, offset);
-		procedure.Instructions.push_back({ LOD,levelDiff,(int32_t)offset });
+	if (nextTerminatorType == "ident" || nextTerminatorType == "(") {
+		//这两种情况的前半段是一样的
+		if (nextTerminatorType == "ident") {
+			Match("ident");
+			SType type;
+			int16_t levelDiff;
+			uint32_t offset;
+			bool isConst;
+			FindVariable(procedure, CurrentIndex - 1, type, levelDiff, offset, isConst);
+
+			//对于数组，将其转换为指针
+			if (type.Type == EType::Array) {
+				type.Type = EType::Pointer;
+
+				value.Type = type;
+				value.bIsConst = false;
+
+				instructions.push_back({ LBP,0,0 });
+				instructions.push_back({ LIT,0,(int32_t)offset });
+				instructions.push_back({ OPR,0,Add });
+			}
+			//其他情况，直接取出相应内存位置的值即可
+			else {
+				value.Type = type;
+				value.bIsConst = isConst;
+
+				instructions.push_back({ LOD,levelDiff,(int32_t)offset });
+			}
+		}
+		//nextTerminatorType == "("
+		else {
+			Match("(");
+			value = Expression(procedure, instructions);
+			Match(")");
+		}
+
+		//然后处理连续的若干个[index]
+		SType indexType;
+		while (true) {
+			if (GetNextTerminatorType() == "[") {
+				Match("[");
+				indexType = Expression(procedure, instructions).Type;
+				if (indexType.Type != EType::Integer) {
+					Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": index must be integer");
+				}
+				Match("]");
+
+				//检查是否能够进行索引
+				if (value.Type.Type != EType::Pointer) {
+					Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot index a non-pointer type");
+				}
+
+				instructions.push_back({ LIT,0,(int32_t)GetSize(*value.Type.InnerType) });
+				instructions.push_back({ OPR,0,Mul });
+				instructions.push_back({ OPR,0,Add });
+
+				value.Type = *value.Type.InnerType;
+				if (value.Type.Type != EType::Array)
+					instructions.push_back({ LOR,0,0 });
+				else
+					value.Type.Type = EType::Pointer;
+
+				value.bIsConst = false;
+			}
+			else break;
+		}
 	}
 	else if (nextTerminatorType == "number") {
 		int32_t numberValue;
 		Match("number", &numberValue);
-		procedure.Instructions.push_back({ LIT,0,numberValue });
+		value.Type.Type = EType::Integer;
+		value.bIsConst = false;
+		instructions.push_back({ LIT,0,numberValue });
 	}
 	else if (nextTerminatorType == "-") {
 		Match("-");
-		Factor(procedure);
-		procedure.Instructions.push_back({ OPR,0,Neg });
+		SType type = Factor(procedure, instructions).Type;
+
+		//检查是否可以取负
+		if (type.Type != EType::Integer) {
+			Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot take the negative of a non-integer type");
+		}
+		value.Type = type;
+		value.bIsConst = false;
+		instructions.push_back({ OPR,0,Neg });
 	}
-	else if (nextTerminatorType == "(") {
-		Match("(");
-		Expression(procedure);
-		Match(")");
+	else if (nextTerminatorType == "*") {
+		Match("*");
+		SValue nextValue = Factor(procedure, instructions);
+
+		//判断是否是指针类型
+		if (nextValue.Type.Type != EType::Pointer) {
+			Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot use * operator to a non-pointer type");
+		}
+
+		value.Type = *nextValue.Type.InnerType;
+		value.bIsConst = false;
+		if (value.Type.Type == EType::Array) value.Type.Type = EType::Pointer;
+		else instructions.push_back({ LOR,0,0 });
+	}
+	else if (nextTerminatorType == "&") {
+		Match("&");
+		SValue nextValue = Factor(procedure, instructions);
+
+		//判断是否是左值
+		if (instructions.back().F != LOD && instructions.back().F != LOR) {
+			Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot use & operator to a non-lvalue");
+		}
+		if (instructions.back().F == LOD) {
+			//这是一个变量，需要取它的地址
+			int16_t levelDiff = instructions.back().L;
+			int32_t offset = instructions.back().a;
+			instructions.pop_back();
+			instructions.push_back({ LOA,levelDiff,offset });
+
+			value.Type = SType{ EType::Pointer,std::make_shared<SType>(nextValue.Type) };
+		}
+		//instructions.back().F == LOR
+		else {
+			//回退一条指令，这样栈顶就是指向结果的指针
+			instructions.pop_back();
+			value.Type = SType{ EType::Pointer,std::make_shared<SType>(nextValue.Type) };
+		}
 	}
 	else {
 		Error("Expected a factor on line " + std::to_string(TerminatorSequence[CurrentIndex].Line));
 	}
+
+	return value;
 }
+

@@ -37,12 +37,13 @@ int main(int argc,char** argv) {
 		OutputFilePath = argv[2];
 	}
 	
+
 	CLexicalAnalyzer LexicalAnalyzer{ SourceFilePath };
 	LexicalAnalyzer.LexicalAnalyze();
 	auto TerminatorSequence = LexicalAnalyzer.GetTerminatorSequence();
 	CCodeGenerator CodeGenerator{ TerminatorSequence };
 	CodeGenerator.GenerateCode();
-	//CodeGenerator.PrintInstructions();	//打印生成的指令（以数字的形式）
+	//CodeGenerator.PrintInstructions();	//打印生成的指令
 	CodeGenerator.Output(OutputFilePath);
 }
 

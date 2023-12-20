@@ -44,7 +44,7 @@ void Pl0VirtualMachine::ExecSTO(const Instruction& instruction)
 {
 	uint32_t address = GetVariableAddress(instruction.L, instruction.a);
 	Stack[address] = Pop();
-	std::cout<<"STO: "<<Stack[address]<<std::endl;
+	std::cout << "STO: " << Stack[address] << std::endl;
 }
 
 void Pl0VirtualMachine::ExecCAL(const Instruction& instruction)
@@ -164,6 +164,37 @@ void Pl0VirtualMachine::ExecRET(const Instruction& instruction)
 	BasePointer = Stack[BasePointer];
 }
 
+void Pl0VirtualMachine::ExecLOR(const Instruction& instruction)
+{
+	uint32_t address = Pop();
+	Push(Stack[address]);
+}
+
+void Pl0VirtualMachine::ExecSTR(const Instruction& instruction)
+{
+	uint32_t address = Pop();
+	int32_t data = Pop();
+	Stack[address] = data;
+
+	std::cout << "STR: " << Stack[address] << std::endl;
+}
+
+void Pl0VirtualMachine::ExecLBP(const Instruction& instruction)
+{
+	Push(BasePointer);
+}
+
+void Pl0VirtualMachine::ExecWRT(const Instruction& instruction)
+{
+	std::cout << Pop() << std::endl;
+}
+
+void Pl0VirtualMachine::ExecLOA(const Instruction& instruction)
+{
+	uint32_t address = GetVariableAddress(instruction.L, instruction.a);
+	Push(address);
+}
+
 Pl0VirtualMachine::Pl0VirtualMachine(const std::string& executableFile) : Stack(1024 * 1024), Instructions{}
 {
 	std::ifstream file(executableFile, std::ios::binary);
@@ -233,6 +264,21 @@ void Pl0VirtualMachine::Run()
 			break;
 		case RET:
 			ExecRET(instruction);
+			break;
+		case LOR:
+			ExecLOR(instruction);
+			break;
+		case STR:
+			ExecSTR(instruction);
+			break;
+		case LBP:
+			ExecLBP(instruction);
+			break;
+		case WRT:
+			ExecWRT(instruction);
+			break;
+		case LOA:
+			ExecLOA(instruction);
 			break;
 		default:
 			std::cerr << "Unknown instruction code: " << instruction.F << std::endl;

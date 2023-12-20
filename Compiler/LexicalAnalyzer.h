@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <fstream>
 #include <string>
 #include <unordered_set>
 
@@ -19,7 +18,7 @@ struct STerminator {
 class CLexicalAnalyzer {
 private:
 	std::vector<STerminator> TerminatorSequence;
-	std::ifstream SourceFile;
+	std::string SourceFile;
 	size_t FileSize;
 	char GetChar(size_t position);
 

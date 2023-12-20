@@ -26,7 +26,11 @@ private:
 	void ExecJPC(const Instruction& instruction);
 	void ExecOPR(const Instruction& instruction);
 	void ExecRET(const Instruction& instruction);
-
+	void ExecLOR(const Instruction& instruction);
+	void ExecSTR(const Instruction& instruction);
+	void ExecLBP(const Instruction& instruction);
+	void ExecWRT(const Instruction& instruction);
+	void ExecLOA(const Instruction& instruction);
 public:
 	Pl0VirtualMachine(const std::string& executableFile);
 	void Run();

@@ -16,4 +16,9 @@ int main(int argc, char** argv)
 
 	Pl0VirtualMachine vm{argv[1]};
 	vm.Run();
+	
+	/*
+	Pl0VirtualMachine vm{ "test.pl0_exe" };
+	vm.Run();
+	*/
 }
