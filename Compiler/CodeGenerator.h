@@ -92,6 +92,7 @@ private:
 	void BeginEndStatement(SProcedure& procedure);
 	void IfStatement(SProcedure& procedure);
 	void WhileStatement(SProcedure& procedure);
+	void PrintStatement(SProcedure& procedure);
 	void Condition(SProcedure& procedure);
 	void OddCondition(SProcedure& procedure);
 	void CompareCondition(SProcedure& procedure);

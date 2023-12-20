@@ -389,6 +389,9 @@ void CCodeGenerator::Statement(SProcedure& procedure)
 	else if (nextTerminatorType == "while") {
 		WhileStatement(procedure);
 	}
+	else if (nextTerminatorType == "print") {
+		PrintStatement(procedure);
+	}
 	else {
 		Error("Expected a statement on line " + std::to_string(TerminatorSequence[CurrentIndex].Line));
 	}
@@ -494,6 +497,19 @@ void CCodeGenerator::WhileStatement(SProcedure& procedure)
 	procedure.Instructions.push_back({ JMP,0,(int32_t)conditionOffset - (int32_t)procedure.Instructions.size() });	//跳转到条件判断
 	//回填
 	procedure.Instructions[jpcInstructionOffset].a = procedure.Instructions.size() - jpcInstructionOffset;
+}
+
+void CCodeGenerator::PrintStatement(SProcedure& procedure)
+{
+	Match("print");
+	Match("(");
+	while (true) {
+		Expression(procedure, procedure.Instructions);
+		procedure.Instructions.push_back({ WRT,0,0 });
+		if (GetNextTerminatorType() != ",") break;
+		else Match(",");
+	}
+	Match(")");
 }
 
 void CCodeGenerator::Condition(SProcedure& procedure)
