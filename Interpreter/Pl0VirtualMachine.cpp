@@ -44,7 +44,6 @@ void Pl0VirtualMachine::ExecSTO(const Instruction& instruction)
 {
 	uint32_t address = GetVariableAddress(instruction.L, instruction.a);
 	Stack[address] = Pop();
-	std::cout << "STO: " << Stack[address] << std::endl;
 }
 
 void Pl0VirtualMachine::ExecCAL(const Instruction& instruction)
@@ -175,8 +174,6 @@ void Pl0VirtualMachine::ExecSTR(const Instruction& instruction)
 	uint32_t address = Pop();
 	int32_t data = Pop();
 	Stack[address] = data;
-
-	std::cout << "STR: " << Stack[address] << std::endl;
 }
 
 void Pl0VirtualMachine::ExecLBP(const Instruction& instruction)

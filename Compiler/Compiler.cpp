@@ -28,6 +28,7 @@ void ShowUsage() {
 }
 
 int main(int argc,char** argv) {
+	
 	//从命令行参数中读取源文件路径和目标文件路径
 	if(argc != 3) {
 		ShowUsage();

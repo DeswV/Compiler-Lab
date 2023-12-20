@@ -1,0 +1,13 @@
+var i;
+var *ptr;
+var a[10];
+procedure p;
+begin
+ ptr:=a;
+end;
+
+begin
+  call p;
+  *(ptr+1):=4;
+ print(a[0],a[1],*(ptr+1),ptr);
+end.

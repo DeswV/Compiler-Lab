@@ -677,21 +677,16 @@ SValue CCodeGenerator::Factor(SProcedure& procedure, std::vector<Instruction>& i
 			//对于数组，将其转换为指针
 			if (type.Type == EType::Array) {
 				type.Type = EType::Pointer;
-
-				value.Type = type;
 				value.bIsConst = false;
-
-				instructions.push_back({ LBP,0,0 });
-				instructions.push_back({ LIT,0,(int32_t)offset });
-				instructions.push_back({ OPR,0,Add });
+				instructions.push_back({ LOA,levelDiff,(int32_t)offset });
 			}
-			//其他情况，直接取出相应内存位置的值即可
+			//对于指针或整数，直接取出相应内存位置的值即可
 			else {
-				value.Type = type;
 				value.bIsConst = isConst;
-
 				instructions.push_back({ LOD,levelDiff,(int32_t)offset });
 			}
+			value.Type = type;
+			
 		}
 		//nextTerminatorType == "("
 		else {
