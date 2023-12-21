@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <cstdint>
 #include "LexicalAnalyzer.h"
 #include "Instruction.h"
 #include "Type.h"
