@@ -4,18 +4,29 @@
 #include "Instruction.h"
 #include "Type.h"
 
+struct SScopedIdentifier {
+	std::vector<std::string> Identifiers;
+	//是否从main的作用域开始
+	bool bStartFromMain;
+	/*
+	比如::p1::p2::a就是从main的作用域开始的，而p1::a就不是
+	*/
 
+	std::string ToString() const;
+};
+
+//用于记录一个子程序拥有的变量
 struct SVariable {
 	std::string Name;
 	SType Type;
 	uint32_t Offset;		//存储在函数栈中的偏移量
 	bool bIsConst;
 	/*
-	如果是数组，那么在Expression()中会将其转换为指针
+	如果是数组变量，那么在Expression()中会将其转换为指针
 	*/
 };
 
-//代表表达式计算中的一个值，左值或右值
+//代表表达式计算的一个中间值，左值或右值
 struct SValue {
 	SType Type;
 	bool bIsConst;
@@ -66,11 +77,11 @@ private:
 	void AddVariable(SProcedure& procedure, uint32_t identTerminatorIndex, const SType& type, bool isConst = false);
 	//同理，添加一个子程序到Procedures的末尾，同时将指针放入procedure.SubProcedures中；输入是定义了这个子程序名的终结符的下标
 	void AddSubProcedure(SProcedure& procedure, uint32_t identTerminatorIndex);
-	//输入的identTerminatorIndex是使用变量名的终结符的下标，之后都是返回值
-	void FindVariable(SProcedure& procedure, uint32_t identTerminatorIndex, SType& type, int16_t& levelDiff, uint32_t& offset, bool& isConst);
+	//输入的scopedIdentifier是带作用域的标识符（也可以不带作用域），返回其类型、层次差、偏移量、是否为常量
+	void FindVariable(SProcedure& procedure, const SScopedIdentifier& scopedIdentifier, SType& type, int16_t& levelDiff, uint32_t& offset, bool& isConst);
 	//与FindVariable类似
 	void FindSubProcedure(SProcedure& procedure, uint32_t identTerminatorIndex, SProcedure*& calledProcedure, int16_t& levelDiff);
-	
+
 	/*
 	* 各种语法分析函数
 	*/
@@ -78,6 +89,8 @@ private:
 
 	//匹配一个终结符，如果是标识符或数字，将其值保存到numverValue或identifierName中
 	void Match(const std::string& type, int32_t* numverValue = nullptr, std::string* identifierName = nullptr);
+	//匹配一个带作用域的标识符（也可以不带作用域），输出到scopedIdentifier
+	void ScopedIdentifier(SScopedIdentifier& scopedIdentifier);
 	void Procedure(SProcedure& procedure);
 
 	void ConstDeclare(SProcedure& procedure);

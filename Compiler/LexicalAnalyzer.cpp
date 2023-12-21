@@ -13,7 +13,7 @@ const std::unordered_set<char> StartOfIdentifiers = { '_','a','b','c','d','e','f
 											   'A','B','C','D','E','F','G','H','I','J','K','L','M',
 											   'N','O','P','Q','R','S','T','U','V','W','X','Y','Z' };
 const std::unordered_set<std::string> Keywords = { "const","var","procedure","call","begin","end","if","then","while","do","odd","print"};
-const std::unordered_set<std::string> SpecialSymbols = { ".","=",";",",",":=","<","<=","<>",">",">=","+","-","*","/","(",")" ,"[","]","&" };
+const std::unordered_set<std::string> SpecialSymbols = { ".","=",";",",",":=","<","<=","<>",">",">=","+","-","*","/","(",")" ,"[","]","&","::"};
 
 
 char CLexicalAnalyzer::GetChar(size_t position)
@@ -59,6 +59,10 @@ void CLexicalAnalyzer::LexicalAnalyze()
 				if (currentPosition + 1 < FileSize && GetChar(currentPosition + 1) == '=') {
 					currentPosition += 2;
 					TerminatorSequence.push_back({ currentLine, ":=" });
+				}
+				else if (currentPosition + 1 < FileSize && GetChar(currentPosition + 1) == ':') {
+					currentPosition += 2;
+					TerminatorSequence.push_back({ currentLine, "::" });
 				}
 				else {
 					Error("Unknown operator: ':', on line " + std::to_string(currentLine));

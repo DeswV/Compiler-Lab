@@ -8,6 +8,19 @@
 #include "LexicalAnalyzer.h"
 
 
+std::string SScopedIdentifier::ToString() const {
+	std::string result;
+	if (bStartFromMain) {
+		result += "::";
+	}
+	for (uint32_t i{}; i < Identifiers.size(); i++) {
+		result += Identifiers[i];
+		if (i != Identifiers.size() - 1)
+			result += "::";
+	}
+	return result;
+}
+
 CCodeGenerator::CCodeGenerator(const std::vector<STerminator>& terminatorSequence) : TerminatorSequence(terminatorSequence)
 {
 }
@@ -156,27 +169,101 @@ void CCodeGenerator::AddSubProcedure(SProcedure& procedure, uint32_t identTermin
 	procedure.SubProcedures.push_back(Procedures.back().get());
 }
 
-void CCodeGenerator::FindVariable(SProcedure& procedure, uint32_t identTerminatorIndex, SType& type, int16_t& levelDiff, uint32_t& offset, bool& isConst)
+void CCodeGenerator::FindVariable(SProcedure& procedure, const SScopedIdentifier& scopedIdentifier, SType& type, int16_t& levelDiff, uint32_t& offset, bool& isConst)
 {
-	std::string variableName = TerminatorSequence[identTerminatorIndex].IdentifierName;
+	if (scopedIdentifier.Identifiers.empty()) {
+		Error("Compiler internal error: scopedIdentifier.Identifiers is empty");
+	}
 
-	//查找该变量，从当前子程序开始向上查找
-	levelDiff = 0;
-	SProcedure* currentProcedure = &procedure;
-	while (currentProcedure) {
-		for (auto& variable : currentProcedure->Variables) {
+	//情况1：从最外层即主程序开始查找
+	if (scopedIdentifier.bStartFromMain) {
+		//先找到变量所在的子程序
+		uint32_t numOfScopes = scopedIdentifier.Identifiers.size() - 1;
+		SProcedure* procedurePtr = Procedures[0].get();
+		for (uint32_t i{}; i < numOfScopes; i++) {
+			bool found{};
+			for (const auto& subprocedure : procedurePtr->SubProcedures) {
+				if (subprocedure->Name == scopedIdentifier.Identifiers[i]) {
+					found = true;
+					procedurePtr = subprocedure;
+					break;
+				}
+			}
+			if (!found) {
+				Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot find variable '" + scopedIdentifier.ToString() + "'");
+			}
+		}
+		//然后在该子程序中寻找变量
+		const std::string& variableName = scopedIdentifier.Identifiers.back();
+		for (const auto& variable : procedurePtr->Variables) {
 			if (variable.Name == variableName) {
 				type = variable.Type;
+				levelDiff = procedurePtr->Level - procedure.Level;
 				offset = variable.Offset;
 				isConst = variable.bIsConst;
 				return;
 			}
 		}
-		levelDiff--;
-		currentProcedure = currentProcedure->Parent;
+		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot find variable '" + scopedIdentifier.ToString() + "'");
 	}
+	//情况2：只有一个变量名，从当前子程序开始向上查找
+	else if (scopedIdentifier.Identifiers.size() == 1) {
+		const std::string& variableName = scopedIdentifier.Identifiers[0];
+		SProcedure* procedurePtr = &procedure;
+		while (procedurePtr) {
+			for (auto& variable : procedurePtr->Variables) {
+				if (variable.Name == variableName) {
+					type = variable.Type;
+					levelDiff= procedurePtr->Level - procedure.Level;
+					offset = variable.Offset;
+					isConst = variable.bIsConst;
+					return;
+				}
+			}
+			procedurePtr = procedurePtr->Parent;
+		}
 
-	Error("Line " + std::to_string(TerminatorSequence[identTerminatorIndex].Line) + ": variable '" + variableName + "' has not been declared");
+		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": variable '" + variableName + "' has not been declared");
+	}
+	//情况3：除了变量名以外还有一个或多个作用域，先从下往上找到第一个标识符定义的作用域
+	else {
+		const std::string& firstIdentifier = scopedIdentifier.Identifiers[0];
+		SProcedure* procedurePtr = &procedure;
+		while (procedurePtr) {
+			if (procedurePtr->Name == firstIdentifier) break;
+			procedurePtr = procedurePtr->Parent;
+		}
+		if (!procedurePtr) {
+			Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": identifier '" + firstIdentifier + "' has not been declared");
+		}
+		//然后向下依次寻找剩余的作用域
+		uint32_t numOfLeftScopes = scopedIdentifier.Identifiers.size() - 2;
+		for (uint32_t i{}; i < numOfLeftScopes; i++) {
+			bool found{};
+			for (const auto& subprocedure : procedurePtr->SubProcedures) {
+				if (subprocedure->Name == scopedIdentifier.Identifiers[i + 1]) {
+					found = true;
+					procedurePtr = subprocedure;
+					break;
+				}
+			}
+			if (!found) {
+				Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot find variable '" + scopedIdentifier.ToString() + "'");
+			}
+		}
+		//然后取出该变量
+		const std::string& variableName = scopedIdentifier.Identifiers.back();
+		for (const auto& variable : procedurePtr->Variables) {
+			if (variable.Name == variableName) {
+				type = variable.Type;
+				levelDiff = procedurePtr->Level - procedure.Level;
+				offset = variable.Offset;
+				isConst = variable.bIsConst;
+				return;
+			}
+		}
+		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot find variable '" + scopedIdentifier.ToString() + "'");
+	}
 }
 
 void CCodeGenerator::FindSubProcedure(SProcedure& procedure, uint32_t identTerminatorIndex, SProcedure*& calledProcedure, int16_t& levelDiff)
@@ -250,6 +337,26 @@ void CCodeGenerator::Match(const std::string& type, int32_t* numverValue, std::s
 		}
 	}
 	CurrentIndex++;
+}
+
+void CCodeGenerator::ScopedIdentifier(SScopedIdentifier& scopedIdentifier)
+{
+	std::string nextTerminatorType = GetNextTerminatorType();
+	if (nextTerminatorType == "::") {
+		Match("::");
+		scopedIdentifier.bStartFromMain = true;
+	}
+	else {
+		scopedIdentifier.bStartFromMain = false;
+	}
+	std::string identifier;
+	scopedIdentifier.Identifiers.clear();
+	while (true) {
+		Match("ident", nullptr, &identifier);
+		scopedIdentifier.Identifiers.push_back(identifier);
+		if (GetNextTerminatorType() != "::") break;
+		else Match("::");
+	}
 }
 
 void CCodeGenerator::Procedure(SProcedure& procedure)
@@ -664,15 +771,16 @@ SValue CCodeGenerator::Factor(SProcedure& procedure, std::vector<Instruction>& i
 	std::string nextTerminatorType = GetNextTerminatorType();
 	SValue value;	//跟踪当前处理的值的类型、是否是左值、是否是常量
 
-	if (nextTerminatorType == "ident" || nextTerminatorType == "(") {
+	if ((nextTerminatorType == "ident" || nextTerminatorType == "::") || nextTerminatorType == "(") {
 		//这两种情况的前半段是一样的
-		if (nextTerminatorType == "ident") {
-			Match("ident");
+		if (nextTerminatorType == "ident" || nextTerminatorType == "::") {
+			SScopedIdentifier scopedIdentifier;
+			ScopedIdentifier(scopedIdentifier);
 			SType type;
 			int16_t levelDiff;
 			uint32_t offset;
 			bool isConst;
-			FindVariable(procedure, CurrentIndex - 1, type, levelDiff, offset, isConst);
+			FindVariable(procedure, scopedIdentifier, type, levelDiff, offset, isConst);
 
 			//对于数组，将其转换为指针
 			if (type.Type == EType::Array) {
@@ -686,7 +794,7 @@ SValue CCodeGenerator::Factor(SProcedure& procedure, std::vector<Instruction>& i
 				instructions.push_back({ LOD,levelDiff,(int32_t)offset });
 			}
 			value.Type = type;
-			
+
 		}
 		//nextTerminatorType == "("
 		else {

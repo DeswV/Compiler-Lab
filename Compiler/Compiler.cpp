@@ -3,6 +3,7 @@
 #include "LexicalAnalyzer.h"
 #include "CodeGenerator.h"
 
+//用于测试词法分析器
 void LexicalAnalyzerTest()
 {
 	CLexicalAnalyzer LexicalAnalyzer{ SourceFilePath };
@@ -37,7 +38,6 @@ int main(int argc,char** argv) {
 		SourceFilePath = argv[1];
 		OutputFilePath = argv[2];
 	}
-	
 
 	CLexicalAnalyzer LexicalAnalyzer{ SourceFilePath };
 	LexicalAnalyzer.LexicalAnalyze();
