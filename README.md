@@ -61,7 +61,7 @@ g++ Interpreter/*.cpp -IShared/ -o Interpreter.exe -std=c++20
 假设Compiler.exe、Interpreter.exe和源码文件（假设叫做example.txt）位于当前目录下。
 
 ```shell
-./Compiler example.txt test # 编译得到二进制文件
-./Interpreter test			# 使用pl0解释器运行
+./Compiler example.txt test   # 编译得到二进制文件
+./Interpreter test			      # 使用pl0解释器运行
 ```
 
