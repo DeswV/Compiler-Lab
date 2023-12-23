@@ -47,9 +47,18 @@ end.
 
 使用以下命令编译（假设位于该仓库的根目录下）：
 
+**对于Windows系统**
+
 ```shell
 g++ Compiler/*.cpp -IShared/ -o Compiler.exe -std=c++20
 g++ Interpreter/*.cpp -IShared/ -o Interpreter.exe -std=c++20
+```
+
+**对于Linux系统**
+
+```shell
+g++ Compiler/*.cpp -IShared/ -o Compiler -std=c++20
+g++ Interpreter/*.cpp -IShared/ -o Interpreter -std=c++20
 ```
 
 注意使用的g++版本需要支持C++ 20。
