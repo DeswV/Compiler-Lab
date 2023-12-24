@@ -8,7 +8,7 @@
 > * 晏铭
 > * 蒋文浩
 
-关于实验内容和要求，请看 [2023-compiler-lab.pdf](Docs/2023-compiler-lab.pdf) 以及 [编译原理和技术实践2017.pdf](Docs/编译原理和技术实践2017.pdf) ，关于我们的具体实现，请看Docs/report.ppt (TODO)。
+关于实验内容和要求，请看 [2023-compiler-lab.pdf](Docs/2023-compiler-lab.pdf) 以及 [编译原理和技术实践2017.pdf](Docs/编译原理和技术实践2017.pdf) ，关于我们的具体实现，请看 [report.pptx](Docs\report.pptx) 。
 
 
 
@@ -26,6 +26,19 @@ p := &a[0];
 p := p+1;
 *(p+1) := 7;
 print(a[2]);	//输出7
+end.
+```
+
+此外还实现了内置的random函数和连续的赋值语句，比如像下面这样的：
+
+```
+var i;
+var a[3];
+
+begin
+  i := random(5);
+ a[0] := a[1] := a[2] := i;
+ print(a[0],a[1],a[2]);
 end.
 ```
 

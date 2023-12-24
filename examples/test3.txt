@@ -1,0 +1,8 @@
+var i;
+var a[3];
+
+begin
+  i := random(5);
+ a[0] := a[1] := a[2] := i;
+ print(a[0],a[1],a[2]);	//输出7 7 7
+end.
