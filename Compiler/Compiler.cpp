@@ -39,6 +39,8 @@ int main(int argc,char** argv) {
 		OutputFilePath = argv[2];
 	}
 
+	LexicalAnalyzerTest();
+
 	CLexicalAnalyzer LexicalAnalyzer{ SourceFilePath };
 	LexicalAnalyzer.LexicalAnalyze();
 	auto TerminatorSequence = LexicalAnalyzer.GetTerminatorSequence();
