@@ -214,7 +214,7 @@ void CCodeGenerator::FindVariable(SProcedure& procedure, const SScopedIdentifier
 			for (auto& variable : procedurePtr->Variables) {
 				if (variable.Name == variableName) {
 					type = variable.Type;
-					levelDiff= procedurePtr->Level - procedure.Level;
+					levelDiff = procedurePtr->Level - procedure.Level;
 					offset = variable.Offset;
 					isConst = variable.bIsConst;
 					return;
@@ -518,28 +518,8 @@ void CCodeGenerator::StatementSequence(SProcedure& procedure)
 
 void CCodeGenerator::AssignStatement(SProcedure& procedure)
 {
-	std::vector<Instruction> instructionsOfLeft;	//暂存左值的指令序列
-	SValue leftValue = Factor(procedure, instructionsOfLeft);	//得到左值的类型和是否是常量
-
-	// 1. 检查是否是左值
-	if (instructionsOfLeft.back().F != LOD && instructionsOfLeft.back().F != LOR) {
-		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot assign to a non-lvalue");
-	}
-	//修改指令使得指令执行结束后栈顶是该左值的地址而非该左值的值
-	if (instructionsOfLeft.back().F == LOD) {
-		int16_t levelDiff = instructionsOfLeft.back().L;
-		int32_t offset = instructionsOfLeft.back().a;
-		instructionsOfLeft.pop_back();
-		instructionsOfLeft.push_back({ LOA,levelDiff,offset });
-	}
-	//instructionsOfLeft.back().F == LOR
-	else {
-		instructionsOfLeft.pop_back();
-	}
-	// 2. 检查是否是常量
-	if (leftValue.bIsConst) {
-		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot assign to a const value");
-	}
+	std::vector<Instruction> instructionsOfLeft;					//暂存左值的指令序列
+	SValue leftValue = Factor(procedure, instructionsOfLeft, true);	//得到左值的类型
 
 	Match(":=");
 	SValue rightValue = Expression(procedure, procedure.Instructions);
@@ -766,7 +746,7 @@ SValue CCodeGenerator::Term(SProcedure& procedure, std::vector<Instruction>& ins
 	return value;
 }
 
-SValue CCodeGenerator::Factor(SProcedure& procedure, std::vector<Instruction>& instructions)
+SValue CCodeGenerator::Factor(SProcedure& procedure, std::vector<Instruction>& instructions, bool isLeftValue)
 {
 	std::string nextTerminatorType = GetNextTerminatorType();
 	SValue value;	//跟踪当前处理的值的类型、是否是左值、是否是常量
@@ -869,30 +849,40 @@ SValue CCodeGenerator::Factor(SProcedure& procedure, std::vector<Instruction>& i
 	}
 	else if (nextTerminatorType == "&") {
 		Match("&");
-		SValue nextValue = Factor(procedure, instructions);
+		//匹配一个左值
+		SValue nextValue = Factor(procedure, instructions, true);
 
-		//判断是否是左值
-		if (instructions.back().F != LOD && instructions.back().F != LOR) {
-			Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot use & operator to a non-lvalue");
-		}
-		if (instructions.back().F == LOD) {
-			//这是一个变量，需要取它的地址
-			int16_t levelDiff = instructions.back().L;
-			int32_t offset = instructions.back().a;
-			instructions.pop_back();
-			instructions.push_back({ LOA,levelDiff,offset });
-
-			value.Type = SType{ EType::Pointer,std::make_shared<SType>(nextValue.Type) };
-		}
-		//instructions.back().F == LOR
-		else {
-			//回退一条指令，这样栈顶就是指向结果的指针
-			instructions.pop_back();
-			value.Type = SType{ EType::Pointer,std::make_shared<SType>(nextValue.Type) };
-		}
+		value.Type = SType{ EType::Pointer,std::make_shared<SType>(nextValue.Type) };
+		value.bIsConst = false;
 	}
 	else {
 		Error("Expected a factor on line " + std::to_string(TerminatorSequence[CurrentIndex].Line));
+	}
+
+	//对左值的特殊处理
+	if (isLeftValue) {
+		//检查是否是左值
+		if (instructions.back().F == LOD || instructions.back().F == LOR) {
+			//确实是左值，检查是否是常量
+			if (value.bIsConst) Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": const cannot be lvalue");
+
+			//修改最后一条指令使得指令执行结束后栈顶是该左值的地址而非该左值的值
+			if (instructions.back().F == LOD) {
+				int16_t levelDiff = instructions.back().L;
+				int32_t offset = instructions.back().a;
+				instructions.pop_back();
+				instructions.push_back({ LOA,levelDiff,offset });
+			}
+			//instructions.back().F == LOR
+			else {
+				instructions.pop_back();
+			}
+
+		}
+		//不是左值
+		else {
+			Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": expected lvalue here");
+		}
 	}
 
 	return value;

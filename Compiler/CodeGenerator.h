@@ -51,7 +51,7 @@ struct SProcedure
 主程序的层次为0，主程序的局部变量的层次为0
 */
 
-//记录下调用了CAL的指令，等待回填
+//用于记录调用了CAL的指令，等待回填
 struct SCallIntruction {
 	SProcedure* Procedure;					//调用指令所在的子程序
 	uint32_t CallInstructionOffset;			//调用指令的偏移量
@@ -116,8 +116,8 @@ private:
 	SValue Expression(SProcedure& procedure, std::vector<Instruction>& instructions);
 	//项
 	SValue Term(SProcedure& procedure, std::vector<Instruction>& instructions);
-	//因子
-	SValue Factor(SProcedure& procedure, std::vector<Instruction>& instructions);
+	//因子；若isLeftValue=false，则指令执行完毕后栈顶为因子的值，反之指令执行完毕后栈顶为左值的地址
+	SValue Factor(SProcedure& procedure, std::vector<Instruction>& instructions, bool isLeftValue = false);
 	/*
 	主程序是特殊的，它的RA为0，调用RET时会退出程序
 	在解释程序开始运行时，先手动向栈中压入三个0，占据DL、SL、RA的位置

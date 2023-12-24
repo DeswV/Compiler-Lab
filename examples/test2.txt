@@ -1,8 +1,9 @@
 var *p;
 var a[10];
+const i=0;
 begin
-p := &a[0];
+p := &a[i+1];
 p := p+1;
 *(p+1) := 7;
-print(a[2]);	//输出7
+print(a[3]);	//输出7
 end.
