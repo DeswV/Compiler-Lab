@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <random>
 #include "Instruction.h"
 
 class Pl0VirtualMachine
@@ -11,6 +12,8 @@ private:
 	uint32_t StackPointer{};
 	std::vector<int32_t> Stack;
 	std::vector<Instruction> Instructions;
+
+	std::mt19937 mt{ std::random_device{}() };
 
 	void Push(int32_t value);
 	int32_t Pop();
@@ -31,6 +34,9 @@ private:
 	void ExecLBP(const Instruction& instruction);
 	void ExecWRT(const Instruction& instruction);
 	void ExecLOA(const Instruction& instruction);
+	void ExecRAN_N(const Instruction& instruction);
+	void ExecRAN(const Instruction& instruction);
+
 public:
 	Pl0VirtualMachine(const std::string& executableFile);
 	void Run();

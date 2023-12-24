@@ -23,6 +23,9 @@ constexpr uint16_t STR = 10;	//存储次栈顶元素的值到栈顶指向的位置
 constexpr uint16_t LBP = 11;	//将BasePointer压栈
 constexpr uint16_t WRT = 12;	//输出一个数
 constexpr uint16_t LOA = 13;	//加载变量的地址
+constexpr uint16_t RAN_N = 14;
+constexpr uint16_t RAN = 15;
+
 
 //OPR指令的a中的操作码
 constexpr int32_t Add = 0;

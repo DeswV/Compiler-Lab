@@ -915,6 +915,26 @@ SValue CCodeGenerator::Factor(SProcedure& procedure, std::vector<Instruction>& i
 		value.Type = SType{ EType::Pointer,std::make_shared<SType>(nextValue.Type) };
 		value.bIsConst = false;
 	}
+	else if (nextTerminatorType == "random")
+	{
+		Match("random");
+		Match("(");
+		std::string terminatortype = GetNextTerminatorType();
+		if (terminatortype == "number")
+		{
+			int num;
+			Match("number", &num);
+			instructions.push_back({ RAN_N,0,num });
+
+		}
+		else {
+			instructions.push_back({ RAN,0,0 });
+		}
+		Match(")");
+
+		value.Type = { EType::Integer };
+		value.bIsConst = false;
+	}
 	else {
 		Error("Expected a factor on line " + std::to_string(TerminatorSequence[CurrentIndex].Line));
 	}
