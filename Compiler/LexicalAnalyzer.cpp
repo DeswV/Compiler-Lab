@@ -100,6 +100,15 @@ void CLexicalAnalyzer::LexicalAnalyze()
 						currentPosition += 1;
 					}
 				}
+				else if (currentPosition + 1 < FileSize && GetChar(currentPosition + 1) == '*') {
+					//block comment
+					currentPosition += 2;
+
+					while ( !(GetChar(currentPosition) == '*' && GetChar(currentPosition+1)=='/')) {
+						currentPosition += 1;
+					}
+					currentPosition += 2;
+				}
 				else {
 					currentPosition += 1;
 					TerminatorSequence.push_back({ currentLine,"/" });
