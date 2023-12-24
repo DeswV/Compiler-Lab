@@ -192,6 +192,18 @@ void Pl0VirtualMachine::ExecLOA(const Instruction& instruction)
 	Push(address);
 }
 
+void Pl0VirtualMachine::ExecSTR_v2(const Instruction& instruction)
+{
+	uint32_t address = Pop();
+	int32_t data = Stack[StackPointer - 1];
+	Stack[address] = data;
+}
+
+void Pl0VirtualMachine::ExecPOP(const Instruction& instruction)
+{
+	Pop();
+}
+
 void Pl0VirtualMachine::ExecRAN_N(const Instruction& instruction)
 {
 	uint32_t num = instruction.a;
@@ -296,6 +308,12 @@ void Pl0VirtualMachine::Run()
 			break;
 		case RAN:
 			ExecRAN(instruction);
+			break;
+		case STR_v2:
+			ExecSTR_v2(instruction);
+			break;
+		case POP:
+			ExecPOP(instruction);
 			break;
 		default:
 			std::cerr << "Unknown instruction code: " << instruction.F << std::endl;

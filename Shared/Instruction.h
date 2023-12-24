@@ -25,6 +25,8 @@ constexpr uint16_t WRT = 12;	//输出一个数
 constexpr uint16_t LOA = 13;	//加载变量的地址
 constexpr uint16_t RAN_N = 14;
 constexpr uint16_t RAN = 15;
+constexpr uint16_t STR_v2 = 16;	//功能与STR相同，但是只会将栈顶元素弹出栈
+constexpr uint16_t POP = 17;
 
 
 //OPR指令的a中的操作码

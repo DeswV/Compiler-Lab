@@ -91,6 +91,18 @@ void CCodeGenerator::PrintInstructions()
 		case 13:
 			std::cout << "LOA";
 			break;
+		case 14:
+			std::cout << "RAN_N";
+			break;
+		case 15:
+			std::cout << "RAN";
+			break;
+		case 16:
+			std::cout << "STR_v2";
+			break;
+		case 17:
+			std::cout << "POP";
+			break;
 		default:
 			break;
 		}
@@ -306,7 +318,7 @@ void CCodeGenerator::FindSubProcedure(SProcedure& procedure, uint32_t identTermi
 	}
 }
 
-void CCodeGenerator::TurnRightValueToLeftValue(std::vector<Instruction> instructions, const SValue& value)
+void CCodeGenerator::TurnRightValueToLeftValue(std::vector<Instruction>& instructions, const SValue& value)
 {
 	//检查是否是左值
 	if (instructions.back().F == LOD || instructions.back().F == LOR) {
@@ -547,10 +559,10 @@ void CCodeGenerator::AssignStatement(SProcedure& procedure)
 {
 	std::vector<std::shared_ptr<std::vector<Instruction>>> instructions;
 	std::vector<SValue> values;
-	
+
 	//match the first item on the left
 	instructions.push_back(std::make_shared<std::vector<Instruction>>());
-	SValue value = Factor(procedure, *instructions.back(),true);		//the first one must be lvalue
+	SValue value = Factor(procedure, *instructions.back(), true);		//the first one must be lvalue
 	values.push_back(value);
 
 	//match the left items one be one
@@ -560,21 +572,29 @@ void CCodeGenerator::AssignStatement(SProcedure& procedure)
 		Match(":=");
 		numAssignments++;
 		instructions.push_back(std::make_shared<std::vector<Instruction>>());
-		nextValue = Factor(procedure, *instructions.back());
+		nextValue = Expression(procedure, *instructions.back());
 		values.push_back(nextValue);
 
 		if (value.Type != nextValue.Type) {
 			Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot assign value to a different type");
 		}
+
+		if (GetNextTerminatorType() != ":=") break;
 	}
-	
+
 	//turn right values to left values
 	for (int i = 1; i < numAssignments; i++) {
-		TurnRightValueToLeftValue(*instructions[i],values[i]); 
+		TurnRightValueToLeftValue(*instructions[i], values[i]);
 	}
 	//put the instructions together, from right to left
+	for (int i = instructions.size() - 1; i >= 0; i--) {
+		procedure.Instructions.insert(procedure.Instructions.end(), instructions[i]->begin(), instructions[i]->end());
+		if (i != instructions.size() - 1) {
+			procedure.Instructions.push_back({ STR_v2,0,0 });
+		}
+	}
+	procedure.Instructions.push_back({ POP,0,0 });
 
-	
 	/*
 
 	std::vector<Instruction> instructionsOfLeft;					//暂存左值的指令序列

@@ -10,6 +10,7 @@ void ShowUsage()
 
 int main(int argc, char** argv)
 {
+	
 	//从命令行参数中获取文件路径
 	if(argc != 2)
 		ShowUsage();
@@ -19,7 +20,7 @@ int main(int argc, char** argv)
 	
 
 	/*
-	Pl0VirtualMachine vm{ "test.pl0_exe" };
+	Pl0VirtualMachine vm{ "test" };
 	vm.Run();
 	*/
 }

@@ -36,6 +36,8 @@ private:
 	void ExecLOA(const Instruction& instruction);
 	void ExecRAN_N(const Instruction& instruction);
 	void ExecRAN(const Instruction& instruction);
+	void ExecSTR_v2(const Instruction& instruction);
+	void ExecPOP(const Instruction& instruction);
 
 public:
 	Pl0VirtualMachine(const std::string& executableFile);

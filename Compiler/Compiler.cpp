@@ -38,15 +38,15 @@ int main(int argc,char** argv) {
 		SourceFilePath = argv[1];
 		OutputFilePath = argv[2];
 	}
-
-	LexicalAnalyzerTest();
+	
+	//LexicalAnalyzerTest();
 
 	CLexicalAnalyzer LexicalAnalyzer{ SourceFilePath };
 	LexicalAnalyzer.LexicalAnalyze();
 	auto TerminatorSequence = LexicalAnalyzer.GetTerminatorSequence();
 	CCodeGenerator CodeGenerator{ TerminatorSequence };
 	CodeGenerator.GenerateCode();
-	//CodeGenerator.PrintInstructions();	//打印生成的指令
+	CodeGenerator.PrintInstructions();	//打印生成的指令
 	CodeGenerator.Output(OutputFilePath);
 }
 
