@@ -192,6 +192,20 @@ void Pl0VirtualMachine::ExecLOA(const Instruction& instruction)
 	Push(address);
 }
 
+void Pl0VirtualMachine::ExecRAN_N(const Instruction& instruction)
+{
+	uint32_t num = instruction.a;
+	num = mt() % num;
+	Push(num);
+
+}
+void Pl0VirtualMachine::ExecRAN(const Instruction& instruction)
+{
+	uint32_t num = mt() % 2000000000;
+
+	Push(num);
+}
+
 Pl0VirtualMachine::Pl0VirtualMachine(const std::string& executableFile) : Stack(1024 * 1024), Instructions{}
 {
 	std::ifstream file(executableFile, std::ios::binary);
@@ -276,6 +290,12 @@ void Pl0VirtualMachine::Run()
 			break;
 		case LOA:
 			ExecLOA(instruction);
+			break;
+		case RAN_N:
+			ExecRAN_N(instruction);
+			break;
+		case RAN:
+			ExecRAN(instruction);
 			break;
 		default:
 			std::cerr << "Unknown instruction code: " << instruction.F << std::endl;
