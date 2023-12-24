@@ -82,6 +82,8 @@ private:
 	void FindVariable(SProcedure& procedure, const SScopedIdentifier& scopedIdentifier, SType& type, int16_t& levelDiff, uint32_t& offset, bool& isConst);
 	//与FindVariable类似
 	void FindSubProcedure(SProcedure& procedure, uint32_t identTerminatorIndex, SProcedure*& calledProcedure, int16_t& levelDiff);
+	//将右值表达式的指令转换为左值
+	void TurnRightValueToLeftValue(std::vector<Instruction> instructions, const SValue& value);
 
 	/*
 	* 各种语法分析函数

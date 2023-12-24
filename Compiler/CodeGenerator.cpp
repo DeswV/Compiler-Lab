@@ -306,6 +306,33 @@ void CCodeGenerator::FindSubProcedure(SProcedure& procedure, uint32_t identTermi
 	}
 }
 
+void CCodeGenerator::TurnRightValueToLeftValue(std::vector<Instruction> instructions, const SValue& value)
+{
+	//检查是否是左值
+	if (instructions.back().F == LOD || instructions.back().F == LOR) {
+		//确实是左值，检查是否是常量
+		if (value.bIsConst) Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": const cannot be lvalue");
+
+		//修改最后一条指令使得指令执行结束后栈顶是该左值的地址而非该左值的值
+		if (instructions.back().F == LOD) {
+			int16_t levelDiff = instructions.back().L;
+			int32_t offset = instructions.back().a;
+			instructions.pop_back();
+			instructions.push_back({ LOA,levelDiff,offset });
+		}
+		//instructions.back().F == LOR
+		else {
+			instructions.pop_back();
+		}
+
+	}
+	//不是左值
+	else {
+		Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": expected lvalue here");
+	}
+}
+
+
 void CCodeGenerator::Program()
 {
 	//主程序
@@ -518,6 +545,38 @@ void CCodeGenerator::StatementSequence(SProcedure& procedure)
 
 void CCodeGenerator::AssignStatement(SProcedure& procedure)
 {
+	std::vector<std::shared_ptr<std::vector<Instruction>>> instructions;
+	std::vector<SValue> values;
+	
+	//match the first item on the left
+	instructions.push_back(std::make_shared<std::vector<Instruction>>());
+	SValue value = Factor(procedure, *instructions.back(),true);		//the first one must be lvalue
+	values.push_back(value);
+
+	//match the left items one be one
+	int numAssignments = 0;
+	SValue nextValue;
+	while (true) {
+		Match(":=");
+		numAssignments++;
+		instructions.push_back(std::make_shared<std::vector<Instruction>>());
+		nextValue = Factor(procedure, *instructions.back());
+		values.push_back(nextValue);
+
+		if (value.Type != nextValue.Type) {
+			Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": cannot assign value to a different type");
+		}
+	}
+	
+	//turn right values to left values
+	for (int i = 1; i < numAssignments; i++) {
+		TurnRightValueToLeftValue(*instructions[i],values[i]); 
+	}
+	//put the instructions together, from right to left
+
+	
+	/*
+
 	std::vector<Instruction> instructionsOfLeft;					//暂存左值的指令序列
 	SValue leftValue = Factor(procedure, instructionsOfLeft, true);	//得到左值的类型
 
@@ -532,6 +591,7 @@ void CCodeGenerator::AssignStatement(SProcedure& procedure)
 	//将计算左值的指令放在右值的指令之后
 	procedure.Instructions.insert(procedure.Instructions.end(), instructionsOfLeft.begin(), instructionsOfLeft.end());
 	procedure.Instructions.push_back({ STR,0,0 });
+	*/
 }
 
 void CCodeGenerator::CallStatement(SProcedure& procedure)
@@ -861,28 +921,7 @@ SValue CCodeGenerator::Factor(SProcedure& procedure, std::vector<Instruction>& i
 
 	//对左值的特殊处理
 	if (isLeftValue) {
-		//检查是否是左值
-		if (instructions.back().F == LOD || instructions.back().F == LOR) {
-			//确实是左值，检查是否是常量
-			if (value.bIsConst) Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": const cannot be lvalue");
-
-			//修改最后一条指令使得指令执行结束后栈顶是该左值的地址而非该左值的值
-			if (instructions.back().F == LOD) {
-				int16_t levelDiff = instructions.back().L;
-				int32_t offset = instructions.back().a;
-				instructions.pop_back();
-				instructions.push_back({ LOA,levelDiff,offset });
-			}
-			//instructions.back().F == LOR
-			else {
-				instructions.pop_back();
-			}
-
-		}
-		//不是左值
-		else {
-			Error("Line " + std::to_string(TerminatorSequence[CurrentIndex - 1].Line) + ": expected lvalue here");
-		}
+		TurnRightValueToLeftValue(instructions, value);
 	}
 
 	return value;
